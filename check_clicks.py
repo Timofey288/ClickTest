@@ -1,5 +1,19 @@
 from tkinter import * 
-from tkinter import messagebox 
+from tkinter import messagebox
+import sqlite3
+
+
+conn = sqlite3.connect("CLICKS_DATA.db")
+conn.row_factory = sqlite3.Row
+cur = conn.cursor()
+
+cur.execute("""CREATE TABLE IF NOT EXISTS clicks_info (
+
+	"clicks" INT
+
+	)""")
+
+conn.commit()
 
 tk = Tk() 
 tk.title("ClickTest") 
@@ -8,7 +22,7 @@ tk.geometry("400x400")
 clicks = 0 
 seconds = 0 
 
-def clicks_count(): 
+def clicks_count(value=""): 
 	global clicks, clicks_info
 
 	clicks += 1 
@@ -46,17 +60,32 @@ def seconds_count():
 	try:
 		if seconds == 10: # здесь можно изменить время которое пройдет, сейчас задано 10 секунд
 			global tk_2
+
+			click_button.pack_forget()
 			
 			tk_2 = Tk()
 			tk_2.wm_attributes("-topmost", True)
 			tk_2.title("Info")
 			tk_2.geometry("400x400")
-			
-			messagebox.showinfo("Info", f"За {seconds} секунд вы кликнули {clicks} раз(а)")
 
 			text_info = Label(tk_2, font = ("Arial", 15))
 			text_info.pack()
-			text_info.config(text = f"За {seconds} секунд вы кликнули {clicks} раз(a)")
+
+			cur.execute(f"INSERT INTO clicks_info (clicks) VALUES ('{clicks}')")
+			conn.commit()
+
+			cur.execute("SELECT clicks FROM clicks_info")
+			
+			numbers = []
+
+			for result in cur:
+				count = result["clicks"]
+				numbers.append(count)
+
+			lenght = len(numbers)
+			
+			messagebox.showinfo("Info", f"Общее колличество кликов: {(sum(numbers)//lenght)}")
+			text_info.config(text = f"Общее колличество кликов: {(sum(numbers)//lenght)}")
 
 			restart_prog_button = Button(tk_2, text = "Restart", width = 40, height = 2, command = restart)
 			restart_prog_button.pack(pady = 10)
@@ -65,7 +94,6 @@ def seconds_count():
 			clicks = 0
 
 			tk.after_cancel(seconds)
-			tk.after_cancel(clicks)
 
 			tk_2.mainloop()
 
@@ -80,5 +108,7 @@ def seconds_count():
 
 	except Exception:
 		pass
+
+click_button.bind("<Return>", clicks_count)
 
 tk.mainloop() 
